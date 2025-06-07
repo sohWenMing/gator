@@ -20,8 +20,7 @@ func TestLoadConfigFromEnv(t *testing.T) {
 		make the relative path correct
 	*/
 	jsonPath := envVar.GetConfigJsonPath()
-	pathToRead := fmt.Sprintf(".%s", jsonPath)
-	fmt.Println("pathToRead", pathToRead)
+	pathToRead := fmt.Sprintf("../%s", jsonPath)
 
 	readConfig, err := config.Read(pathToRead)
 	if err != nil {

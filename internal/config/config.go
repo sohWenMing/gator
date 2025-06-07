@@ -28,6 +28,10 @@ func Read(path string) (c *Config, err error) {
 	return &configVar, nil
 }
 
+func (c *Config) UpdateCurrentUserName(username string) {
+	c.CurrentUserName = username
+}
+
 func (c *Config) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintln("{"))
@@ -35,4 +39,18 @@ func (c *Config) String() string {
 	b.WriteString(fmt.Sprintln("CurrentUserName: ", c.CurrentUserName))
 	b.WriteString(fmt.Sprintln("}"))
 	return b.String()
+}
+
+func WriteConfigToFile(c Config, filePath string) error {
+	marshalledConfig, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("error occured here")
+		return err
+	}
+	defer file.Close()
+	return os.WriteFile(filePath, marshalledConfig, 0644)
 }
