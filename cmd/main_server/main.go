@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
+	"github.com/sohWenMing/gator/internal/commands"
 	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/env"
+	"github.com/sohWenMing/gator/internal/state"
 )
 
 func main() {
@@ -13,23 +16,44 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// first read .env file
+
 	jsonFilename := readEnvVars.GetConfigJsonPath()
 	jsonPath := fmt.Sprintf("../../%s", jsonFilename)
-	readConfig, err := config.Read(jsonPath)
+	cfg, err := config.Read(jsonPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	/*
+		get the config from the json file - as calculated from the .env file,
+		relative to where this file is located within the project
+	*/
+
+	state := state.InitState(os.Stdout)
+	state.SetConfig(cfg)
+
+	commandMap := commands.InitCommandMap()
+	parsedCommand, args, err := commandMap.ParseCommand(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = parsedCommand.CallBack(state, args)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	readConfig.UpdateCurrentUserName("nindgabeet")
-	err = config.WriteConfigToFile(*readConfig, jsonPath)
+	if parsedCommand.GetName() == "login" {
+		err = config.WriteConfigToFile(*cfg, jsonPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	cfg, err = config.Read(jsonPath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	readConfig, err = config.Read(jsonPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(readConfig.String())
+	fmt.Println(cfg.String())
 
 }
 
