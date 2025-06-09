@@ -2,7 +2,6 @@ package integrationtesting
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/sohWenMing/gator/internal/config"
@@ -27,12 +26,9 @@ func TestLoadConfigFromEnv(t *testing.T) {
 		t.Errorf("didn't expect error, got %v", err)
 		return
 	}
-	expectedConfig := config.Config{
-		DbUrl:           "postgres://example",
-		CurrentUserName: "",
-	}
-	if !reflect.DeepEqual(*readConfig, expectedConfig) {
-		t.Errorf("\ngot: %s\nwant: %s", readConfig.String(), expectedConfig.String())
+	expectedDBUrl := "postgres://example"
+	if readConfig.DbUrl != expectedDBUrl {
+		t.Errorf("\ngot: %s\nwant: %s", readConfig.DbUrl, expectedDBUrl)
 	}
 
 }

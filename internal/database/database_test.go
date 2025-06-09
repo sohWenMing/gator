@@ -11,14 +11,14 @@ import (
 var workingDir string = "/home/nindgabeet/workspace/github.com/sohWenMing/gator"
 
 func TestMain(m *testing.M) {
-	startCmd := exec.Command("make", "run-pg")
+	startCmd := exec.Command("make", "run-pg-dev")
 	startCmd.Dir = workingDir
 	if err := startCmd.Run(); err != nil {
 		fmt.Println("postgres container failed to launch", err)
 		os.Exit(1)
 	}
 	code := m.Run()
-	stopCmd := exec.Command("make", "stop-pg")
+	stopCmd := exec.Command("make", "stop-pg-dev")
 	stopCmd.Dir = workingDir
 	if err := stopCmd.Run(); err != nil {
 		fmt.Println("cleanup refused to run", err)
