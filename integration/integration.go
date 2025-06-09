@@ -2,14 +2,12 @@ package integration
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
 	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
 	"github.com/sohWenMing/gator/internal/state"
-	"github.com/sohWenMing/gator/internal/utils"
 )
 
 func LoadState(writer io.Writer) (returnedState *state.State) {
@@ -38,11 +36,9 @@ func PingDB(s *state.State) error {
 	exitChan := make(chan error)
 
 	go func(proceedChan chan<- struct{}, exitChan chan<- error) {
-		for i := range 60 {
+		for i := 0; i < 60; i++ {
 			_, err := s.GetQueries().Ping(s.GetStateContext().Context)
 			if err != nil {
-				pingFailLine := fmt.Sprintln("attempt to ping db failed: ", i)
-				utils.WriteLine(s.GetWriter(), pingFailLine)
 				time.Sleep(500 * time.Millisecond)
 				continue
 			} else {

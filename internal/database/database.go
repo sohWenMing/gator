@@ -11,7 +11,6 @@ import (
 // ############################ Connections ###################################//
 
 func ConnectToDB(connectionString string) (dbQueries *Queries, err error) {
-	fmt.Println("connectionString: ", connectionString)
 	for i := range 60 {
 		db, err := attemptOpenConnection(connectionString)
 		if err != nil {

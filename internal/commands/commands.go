@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
 )
@@ -38,6 +42,11 @@ var (
 		"registers a new user to the application",
 		RegisterCallBack,
 	}
+	ResetCommand = Command{
+		"reset",
+		"resets the database to an empty state",
+		ResetCallBack,
+	}
 )
 
 func (cm CommandMap) ParseCommand(osArgs []string) (parsedCommand Command, args []string, err error) {
@@ -67,6 +76,7 @@ func InitCommandMap() CommandMap {
 	returnedMap := CommandMap(make(map[string]Command))
 	returnedMap["login"] = LoginCommand
 	returnedMap["register"] = RegisterCommand
+	returnedMap["reset"] = ResetCommand
 	return returnedMap
 }
 
@@ -74,12 +84,42 @@ func LoginCallBack(s *state.State, args []string) error {
 	if len(args) != 1 {
 		return errors.New("number of args passed into login command should only be 1, being the user to login")
 	}
-	userNameToUpdate := args[0]
+	nameForLogin := args[0]
+	user, err := s.GetQueries().GetUser(s.GetStateContext().Context, nameForLogin)
+	if err != nil {
+		errMsg := err.Error()
+		if isNotFound := strings.Contains(errMsg, "no rows in result set"); isNotFound {
+			msg := fmt.Sprintf("user with name %s cannot be found", nameForLogin)
+			utils.WriteLine(s.GetWriter(), fmt.Sprintln(msg))
+			utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in: ", s.GetConfig().CurrentUserName))
+			return nil
+		} else {
+			return err
+		}
+	}
+	userNameToUpdate := user.Name
 	s.GetConfig().UpdateCurrentUserName(userNameToUpdate)
-	err := WriteConfigToFile(s)
+	err = WriteConfigToFile(s)
 	if err != nil {
 		return err
 	}
+	utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in: ", s.GetConfig().CurrentUserName))
+	return nil
+}
+func ResetCallBack(s *state.State, args []string) error {
+	if len(args) != 0 {
+		return errors.New("reset cannot be called with arguments")
+	}
+	err := s.GetQueries().DeleteAllUsers(s.GetStateContext().Context)
+	if err != nil {
+		return err
+	}
+	s.GetConfig().CurrentUserName = ""
+	err = WriteConfigToFile(s)
+	if err != nil {
+		return err
+	}
+	utils.WriteLine(s.GetWriter(), "database has been reset to blank slate")
 	return nil
 }
 func HelpCallBack(s *state.State, args []string) error {
@@ -90,15 +130,29 @@ func RegisterCallBack(s *state.State, args []string) error {
 	if len(args) != 1 {
 		return errors.New("number of args passed into register command should only be 1, being the user to register")
 	}
-	_, err := s.GetQueries().GetUser(s.GetStateContext().Context, args[0])
+	user, err := s.GetQueries().CreateUser(s.GetStateContext().Context, database.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      args[0],
+	})
 	if err != nil {
-		fmt.Println("error returned", err)
+		errMsg := err.Error()
+		if isDup := strings.Contains(errMsg, "duplicate key value violates unique constraint"); isDup == true {
+			message := fmt.Sprintln("user has already been created with name: ", args[0])
+			utils.WriteLine(s.GetWriter(), message)
+			return nil
+		} else {
+			return err
+		}
+	} else {
+		message := fmt.Sprintln("user has been created with name: ", user.Name)
+		utils.WriteLine(s.GetWriter(), message)
+		return nil
 	}
-	return nil
 }
 
 func WriteConfigToFile(s *state.State) error {
-	fmt.Println("Write ConfigToFileRan")
 	marshalledConfig, err := json.Marshal(s.GetConfig())
 	if err != nil {
 		return err
