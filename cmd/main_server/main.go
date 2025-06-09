@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	integration "github.com/sohWenMing/gator/integration"
 	"github.com/sohWenMing/gator/internal/commands"
-	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/utils"
 )
 
@@ -26,19 +24,10 @@ func main() {
 		log.Fatal(err)
 	}
 	// first read .env file
-
-	jsonFilename := readEnvVars.GetConfigJsonPath()
-	jsonPath := fmt.Sprintf("../../%s", jsonFilename)
-	absJsonPath, err := filepath.Abs(jsonPath)
+	cfg, err := integration.LoadConfigAndSetJson("../../", readEnvVars)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg, err := config.Read(absJsonPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfg.SetJsonPath(absJsonPath)
 	/*
 		get the config from the json file - as calculated from the .env file,
 		relative to where this file is located within the project

@@ -9,8 +9,8 @@ import (
 )
 
 type Config struct {
-	CurrentUserName string `json:"current_username"`
-	jsonPath        string
+	LoggedInUserName string `json:"current_username"`
+	jsonPath         string
 }
 
 func Read(path string) (c *Config, err error) {
@@ -28,8 +28,8 @@ func Read(path string) (c *Config, err error) {
 	return &configVar, nil
 }
 
-func (c *Config) UpdateCurrentUserName(username string) {
-	c.CurrentUserName = username
+func (c *Config) UpdateLoggedInUserName(username string) {
+	c.LoggedInUserName = username
 }
 func (c *Config) SetJsonPath(jsonPath string) {
 	c.jsonPath = jsonPath
@@ -41,7 +41,7 @@ func (c *Config) GetJsonPath() string {
 func (c *Config) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintln("{"))
-	b.WriteString(fmt.Sprintln("CurrentUserName: ", c.CurrentUserName))
+	b.WriteString(fmt.Sprintln("CurrentUserName: ", c.LoggedInUserName))
 	b.WriteString(fmt.Sprintln("jsonPath: ", c.jsonPath))
 	b.WriteString(fmt.Sprintln("}"))
 	return b.String()

@@ -47,6 +47,11 @@ var (
 		"resets the database to an empty state",
 		ResetCallBack,
 	}
+	UsersCommand = Command{
+		"users",
+		"lists all the users that are available in the system",
+		UsersCallBack,
+	}
 )
 
 func (cm CommandMap) ParseCommand(osArgs []string) (parsedCommand Command, args []string, err error) {
@@ -77,6 +82,7 @@ func InitCommandMap() CommandMap {
 	returnedMap["login"] = LoginCommand
 	returnedMap["register"] = RegisterCommand
 	returnedMap["reset"] = ResetCommand
+	returnedMap["users"] = UsersCommand
 	return returnedMap
 }
 
@@ -91,19 +97,19 @@ func LoginCallBack(s *state.State, args []string) error {
 		if isNotFound := strings.Contains(errMsg, "no rows in result set"); isNotFound {
 			msg := fmt.Sprintf("user with name %s cannot be found", nameForLogin)
 			utils.WriteLine(s.GetWriter(), fmt.Sprintln(msg))
-			utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in: ", s.GetConfig().CurrentUserName))
+			utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in:", s.GetConfig().LoggedInUserName))
 			return nil
 		} else {
 			return err
 		}
 	}
 	userNameToUpdate := user.Name
-	s.GetConfig().UpdateCurrentUserName(userNameToUpdate)
+	s.GetConfig().UpdateLoggedInUserName(userNameToUpdate)
 	err = WriteConfigToFile(s)
 	if err != nil {
 		return err
 	}
-	utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in: ", s.GetConfig().CurrentUserName))
+	utils.WriteLine(s.GetWriter(), fmt.Sprintln("current user logged in:", s.GetConfig().LoggedInUserName))
 	return nil
 }
 func ResetCallBack(s *state.State, args []string) error {
@@ -114,12 +120,29 @@ func ResetCallBack(s *state.State, args []string) error {
 	if err != nil {
 		return err
 	}
-	s.GetConfig().CurrentUserName = ""
+	s.GetConfig().LoggedInUserName = ""
 	err = WriteConfigToFile(s)
 	if err != nil {
 		return err
 	}
 	utils.WriteLine(s.GetWriter(), "database has been reset to blank slate")
+	return nil
+}
+func UsersCallBack(s *state.State, args []string) error {
+	if len(args) != 0 {
+		return errors.New("users cannot be called with arguments")
+	}
+	users, err := s.GetQueries().GetAllUsers(s.GetStateContext().Context)
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		if user.Name == s.GetConfig().LoggedInUserName {
+			utils.WriteLine(s.GetWriter(), fmt.Sprintf("* %s (current)", user.Name))
+		} else {
+			utils.WriteLine(s.GetWriter(), fmt.Sprintf("* %s", user.Name))
+		}
+	}
 	return nil
 }
 func HelpCallBack(s *state.State, args []string) error {
@@ -130,6 +153,7 @@ func RegisterCallBack(s *state.State, args []string) error {
 	if len(args) != 1 {
 		return errors.New("number of args passed into register command should only be 1, being the user to register")
 	}
+
 	user, err := s.GetQueries().CreateUser(s.GetStateContext().Context, database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),

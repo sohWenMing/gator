@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sohWenMing/gator/internal/commands"
 	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
 	"github.com/sohWenMing/gator/internal/state"
@@ -19,6 +21,7 @@ var (
 	testEnvVars *env.EnvVars
 	buf         *bytes.Buffer = &bytes.Buffer{}
 	workingDir  string        = "/home/nindgabeet/workspace/github.com/sohWenMing/gator"
+	commandMap  commands.CommandMap
 )
 
 func TestMain(m *testing.M) {
@@ -48,6 +51,16 @@ func TestMain(m *testing.M) {
 	} else {
 		fmt.Println("All setup passed for integration test")
 	}
+
+	cfg, err := LoadConfigAndSetJson("../", testEnvVars)
+	if err != nil {
+		fmt.Println("Load config failed", err)
+		os.Exit(1)
+	}
+
+	testState.SetConfig(cfg)
+	commandMap = commands.InitCommandMap()
+
 	code := m.Run()
 
 	err = testState.GetQueries().DeleteAllUsers(testState.GetStateContext().Context)
@@ -113,5 +126,66 @@ func TestCreateUser(t *testing.T) {
 				}
 			}
 		})
+	}
+
+	err := testState.GetQueries().DeleteAllUsers(testState.GetStateContext().Context)
+	if err != nil {
+		t.Errorf("clearing of all users failed")
+		return
+	}
+}
+
+func TestListAllUsers(t *testing.T) {
+	usernames := []string{"test1", "test2", "test3"}
+	for _, username := range usernames {
+		userToCreate := database.CreateUserParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Name:      username,
+		}
+		_, err := testState.GetQueries().CreateUser(testState.GetStateContext().Context, userToCreate)
+		if err != nil {
+			t.Errorf("error on creating user: %v", err)
+			return
+		}
+	}
+
+	loginArgs := []string{"gator", "login", "test2"}
+	loginCmd, args, err := commandMap.ParseCommand(loginArgs)
+	if err != nil {
+		t.Errorf("didn't expect error, got %v", err)
+		return
+	}
+	loginCallBack := commandMap[loginCmd.GetName()].CallBack
+	err = loginCallBack(testState, args)
+	if err != nil {
+		t.Errorf("didn't expect error, got %v", err)
+		return
+	}
+	want := "current user logged in: test2"
+	got := strings.ReplaceAll(buf.String(), "\n", "")
+	if got != want {
+		t.Errorf("\ngot: %q\nwant: %q", got, want)
+	}
+	buf.Reset()
+	userArgs := []string{"gator", "users"}
+	userCmd, args, err := commandMap.ParseCommand(userArgs)
+	if err != nil {
+		t.Errorf("didn't expect error, got %v", err)
+		return
+	}
+	usersCallBack := commandMap[userCmd.GetName()].CallBack
+	err = usersCallBack(testState, args)
+	if err != nil {
+		t.Errorf("didn't expect error, got %v", err)
+		return
+	}
+	got = buf.String()
+	checkStrings := []string{"test1", "test2 (current)", "test3"}
+	for _, checkString := range checkStrings {
+		if !strings.Contains(got, checkString) {
+			t.Errorf("%s could not be found in output of users callback", checkString)
+		}
 	}
 }

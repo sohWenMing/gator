@@ -2,9 +2,12 @@ package integration
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"path/filepath"
 	"time"
 
+	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
 	"github.com/sohWenMing/gator/internal/state"
@@ -57,4 +60,20 @@ func PingDB(s *state.State) error {
 		return nil
 	}
 
+}
+
+func LoadConfigAndSetJson(relDir string, envVars *env.EnvVars) (*config.Config, error) {
+
+	jsonFilename := envVars.GetConfigJsonPath()
+	jsonPath := fmt.Sprintf("%s%s", relDir, jsonFilename)
+	absJsonPath, err := filepath.Abs(jsonPath)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := config.Read(absJsonPath)
+	if err != nil {
+		return nil, err
+	}
+	cfg.SetJsonPath(absJsonPath)
+	return cfg, nil
 }

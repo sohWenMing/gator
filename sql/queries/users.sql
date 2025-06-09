@@ -13,6 +13,9 @@ SELECT * from users
 WHERE name = $1
 LIMIT 1;
 
+-- name: GetAllUsers :many
+SELECT id, created_at, updated_at, name from users;
+
 -- name: DeleteUserByName :exec
 DELETE FROM users
 WHERE name = $1;
