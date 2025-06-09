@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
@@ -29,6 +32,11 @@ var (
 		"help",
 		"prints the help and usage messages",
 		HelpCallBack,
+	}
+	RegisterCommand = Command{
+		"register",
+		"registers a new user to the application",
+		RegisterCallBack,
 	}
 )
 
@@ -58,19 +66,48 @@ func (cm CommandMap) ParseCommand(osArgs []string) (parsedCommand Command, args 
 func InitCommandMap() CommandMap {
 	returnedMap := CommandMap(make(map[string]Command))
 	returnedMap["login"] = LoginCommand
+	returnedMap["register"] = RegisterCommand
 	return returnedMap
 }
 
 func LoginCallBack(s *state.State, args []string) error {
 	if len(args) != 1 {
-		return errors.New("only on argument being the user to be logged in should be entered.")
+		return errors.New("number of args passed into login command should only be 1, being the user to login")
 	}
 	userNameToUpdate := args[0]
 	s.GetConfig().UpdateCurrentUserName(userNameToUpdate)
+	err := WriteConfigToFile(s)
+	if err != nil {
+		return err
+	}
 	return nil
-
 }
 func HelpCallBack(s *state.State, args []string) error {
 	return nil
 
+}
+func RegisterCallBack(s *state.State, args []string) error {
+	if len(args) != 1 {
+		return errors.New("number of args passed into register command should only be 1, being the user to register")
+	}
+	_, err := s.GetQueries().GetUser(s.GetStateContext().Context, args[0])
+	if err != nil {
+		fmt.Println("error returned", err)
+	}
+	return nil
+}
+
+func WriteConfigToFile(s *state.State) error {
+	fmt.Println("Write ConfigToFileRan")
+	marshalledConfig, err := json.Marshal(s.GetConfig())
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(s.GetConfig().GetJsonPath())
+	if err != nil {
+		fmt.Println("error occured here")
+		return err
+	}
+	defer file.Close()
+	return os.WriteFile(s.GetConfig().GetJsonPath(), marshalledConfig, 0644)
 }

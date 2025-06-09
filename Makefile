@@ -1,12 +1,12 @@
 run-dev:
-	make run-pg-dev
-	cd /home/nindgabeet/workspace/github.com/sohWenMing/gator/cmd/main_server && \
-	ENVPATH="../../.env" go run . $(COMMAND)
-	make stop-pg-dev
+	@make run-pg-dev > /dev/null 2>&1 
+	@cd /home/nindgabeet/workspace/github.com/sohWenMing/gator/cmd/main_server && \
+	ENVPATH="../../.env" go run . $(COMMAND) || true
+	@make stop-pg-dev > /dev/null 2>&1
 # to run this, from root directory run make run-dev COMMAND="login nindgabeet"
 
 run-pg-dev:
-	docker run \
+	@docker run \
 	--name dev-postgres \
 	-p 5432:5432 \
 	-e POSTGRES_PASSWORD=postgres \
@@ -15,16 +15,16 @@ run-pg-dev:
 	postgres:15.13
 
 stop-pg-dev:
-	docker stop dev-postgres
-	docker container prune -f
+	@docker stop dev-postgres
+	@docker container prune -f
 
 setup-pg-dev:
-	make run-pg-dev
+	@make run-pg-dev
 	./shell_scripts/db_setup.sh
-	make stop-pg-dev
+	@make stop-pg-dev
 
 
 down-pg-dev:
-	make run-pg-dev
+	@make run-pg-dev
 	./shell_scripts/db_down.sh
-	make stop-pg-dev
+	@make stop-pg-dev

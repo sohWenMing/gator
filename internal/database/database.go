@@ -8,6 +8,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// ############################ Connections ###################################//
+
 func ConnectToDB(connectionString string) (dbQueries *Queries, err error) {
 	fmt.Println("connectionString: ", connectionString)
 	for i := range 60 {
@@ -21,6 +23,9 @@ func ConnectToDB(connectionString string) (dbQueries *Queries, err error) {
 	}
 	return nil, errors.New("db did not connect in time")
 }
+
+// this function will try continually to connect to the database, but
+// will fail after 60 times
 
 func attemptOpenConnection(connectionString string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", connectionString)

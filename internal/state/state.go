@@ -1,21 +1,33 @@
 package state
 
 import (
+	"context"
 	"io"
+	"time"
 
 	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/database"
 )
 
 type State struct {
-	config  *config.Config
-	writer  io.Writer
-	queries *database.Queries
+	config       *config.Config
+	writer       io.Writer
+	queries      *database.Queries
+	stateContext StateContext
+}
+
+type StateContext struct {
+	Context    context.Context
+	CancelFunc context.CancelFunc
 }
 
 func InitState(w io.Writer) *State {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	return &State{
 		writer: w,
+		stateContext: StateContext{
+			ctx, cancelFunc,
+		},
 	}
 }
 
@@ -32,4 +44,10 @@ func (s *State) GetWriter() io.Writer {
 }
 func (s *State) SetQueries(q *database.Queries) {
 	s.queries = q
+}
+func (s *State) GetQueries() *database.Queries {
+	return s.queries
+}
+func (s *State) GetStateContext() *StateContext {
+	return &s.stateContext
 }
