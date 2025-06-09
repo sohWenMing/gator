@@ -1,24 +1,35 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/lib/pq"
 )
 
-func ConnectToDB(connectionString string) (conn *pgx.Conn, err error) {
+// ############################ Connections ###################################//
+
+func ConnectToDB(connectionString string) (dbQueries *Queries, err error) {
 	for i := range 60 {
-		fmt.Println("Attempting to connect to database, attempt: ", i)
-		conn, err = pgx.Connect(context.Background(), connectionString)
-		if err == nil {
-			return conn, nil
+		db, err := attemptOpenConnection(connectionString)
+		if err != nil {
+			fmt.Println("attempt to connect to database failed: ", i)
 		} else {
-			time.Sleep(500 * time.Millisecond)
-			continue
+			dbQueries := New(db)
+			return dbQueries, nil
 		}
 	}
-	return nil, errors.New("connection to database could not be established in time")
+	return nil, errors.New("db did not connect in time")
+}
+
+// this function will try continually to connect to the database, but
+// will fail after 60 times
+
+func attemptOpenConnection(connectionString string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", connectionString)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

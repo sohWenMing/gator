@@ -4,23 +4,24 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"time"
 
+	integration "github.com/sohWenMing/gator/integration"
 	"github.com/sohWenMing/gator/internal/commands"
 	"github.com/sohWenMing/gator/internal/config"
-	"github.com/sohWenMing/gator/internal/env"
-	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
 )
 
 func main() {
 	envPath := os.Getenv("ENVPATH")
 	if envPath == "" {
-		fmt.Println("ENVPATH not found in environment, defaulting to .dev")
+		fmt.Println("ENVPATH not found in environment, defaulting to .env")
 	} else {
 		fmt.Println("Found envPath: ", envPath)
 	}
 
-	readEnvVars, err := env.ReadEnv(envPath)
+	readEnvVars, err := integration.GetEnvVars(envPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,17 +29,48 @@ func main() {
 
 	jsonFilename := readEnvVars.GetConfigJsonPath()
 	jsonPath := fmt.Sprintf("../../%s", jsonFilename)
-	cfg, err := config.Read(jsonPath)
+	absJsonPath, err := filepath.Abs(jsonPath)
 	if err != nil {
 		log.Fatal(err)
 	}
+	cfg, err := config.Read(absJsonPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg.SetJsonPath(absJsonPath)
 	/*
 		get the config from the json file - as calculated from the .env file,
 		relative to where this file is located within the project
 	*/
 
-	state := state.InitState(os.Stdout)
+	state := integration.LoadState(os.Stdout)
+	// run the initial state, attaching os.Stdout as the writer
+
 	state.SetConfig(cfg)
+	//attach the config initialised to the state
+
+	queries, err := integration.ConnectToDB(readEnvVars.GetDBConnectionString())
+
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		utils.WriteLine(state.GetWriter(), "Connection to database established")
+	}
+
+	state.SetQueries(queries)
+	// attach the queries from the dbConnection to state, to be accessed by functions
+
+	startPingTime := time.Now()
+	err = integration.PingDB(state)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		timetaken := time.Since(startPingTime)
+		timeTakenLine := fmt.Sprintln("Ping succeeded. Time taken: ", timetaken)
+		utils.WriteLine(state.GetWriter(), timeTakenLine)
+	}
+	// initiate ping test - ping is to make sure that database is ready to accept connectoins before moving on with anything else
 
 	commandMap := commands.InitCommandMap()
 	parsedCommand, args, err := commandMap.ParseCommand(os.Args)
@@ -47,25 +79,8 @@ func main() {
 	}
 	err = parsedCommand.CallBack(state, args)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
-
-	if parsedCommand.GetName() == "login" {
-		err = config.WriteConfigToFile(*cfg, jsonPath)
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			updatedUsername := args[0]
-			prompt := fmt.Sprintf("logged in user has been updated to %s", updatedUsername)
-			utils.WriteLine(state.GetWriter(), prompt)
-		}
-	}
-
-	cfg, err = config.Read(jsonPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(cfg.String())
 
 }
 
