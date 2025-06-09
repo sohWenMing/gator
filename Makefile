@@ -1,6 +1,8 @@
 run-dev:
+	make run-pg-dev
 	cd /home/nindgabeet/workspace/github.com/sohWenMing/gator/cmd/main_server && \
 	ENVPATH="../../.env" go run . $(COMMAND)
+	make stop-pg-dev
 # to run this, from root directory run make run-dev COMMAND="login nindgabeet"
 
 run-pg-dev:

@@ -7,6 +7,7 @@ import (
 
 	"github.com/sohWenMing/gator/internal/commands"
 	"github.com/sohWenMing/gator/internal/config"
+	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
 	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
@@ -39,6 +40,15 @@ func main() {
 
 	state := state.InitState(os.Stdout)
 	state.SetConfig(cfg)
+
+	queries, err := database.ConnectToDB(readEnvVars.GetDBConnectionString())
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		utils.WriteLine(state.GetWriter(), "Connection to database established")
+	}
+
+	state.SetQueries(queries)
 
 	commandMap := commands.InitCommandMap()
 	parsedCommand, args, err := commandMap.ParseCommand(os.Args)

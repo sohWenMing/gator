@@ -9,7 +9,6 @@ import (
 )
 
 type Config struct {
-	DbUrl           string `json:"db_url"`
 	CurrentUserName string `json:"current_username"`
 }
 
@@ -35,7 +34,6 @@ func (c *Config) UpdateCurrentUserName(username string) {
 func (c *Config) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintln("{"))
-	b.WriteString(fmt.Sprintln("DBUrl: ", c.DbUrl))
 	b.WriteString(fmt.Sprintln("CurrentUserName: ", c.CurrentUserName))
 	b.WriteString(fmt.Sprintln("}"))
 	return b.String()
