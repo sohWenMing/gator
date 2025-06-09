@@ -1,11 +1,9 @@
-hello:
-	echo "Hello world"
-
 run-dev:
 	cd /home/nindgabeet/workspace/github.com/sohWenMing/gator/cmd/main_server && \
 	ENVPATH="../../.env" go run . $(COMMAND)
+# to run this, from root directory run make run-dev COMMAND="login nindgabeet"
 
-run-pg:
+run-pg-dev:
 	docker run \
 	--name dev-postgres \
 	-p 5432:5432 \
@@ -14,12 +12,17 @@ run-pg:
 	-d \
 	postgres:15.13
 
-stop-pg:
+stop-pg-dev:
 	docker stop dev-postgres
 	docker container prune -f
 
+setup-pg-dev:
+	make run-pg-dev
+	./shell_scripts/db_setup.sh
+	make stop-pg-dev
 
-setup-pg:
-	make run-pg
-	./db_setup.sh
-	make stop-pg
+
+down-pg-dev:
+	make run-pg-dev
+	./shell_scripts/db_down.sh
+	make stop-pg-dev

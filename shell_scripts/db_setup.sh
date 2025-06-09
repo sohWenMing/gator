@@ -32,8 +32,7 @@ if grep -q "already exists" "$TMPFILE"; then
     echo "Database already exists - Continuing ..."
 #error will be specific in the event the gator database already exists
 
-elif [ -s "$TMPFILE" ];
-then
+elif [ -s "$TMPFILE" ]; then
     echo "Some other error occured."
     cat "$TMPFILE"
     echo "error occured in database creation: skipping to closing container"
@@ -44,4 +43,17 @@ else
 fi
 
 echo "Running migrations"
+cd "./sql/schema"
+CONNSTRING="postgres://postgres:postgres@localhost:5432/gator"
+goose postgres "$CONNSTRING" up 2>"$TMPFILE"
+# attempt to run the migration
+
+if grep -q "no migrations to run" "$TMPFILE"; then 
+    echo "All migrations are up to date"
+elif [ -s "$TMPFILE" ]; then
+    echo "error occured when running migration"
+    cat "$TMPFILE"
+else 
+    echo "migrations ran successfully"
+fi
 
