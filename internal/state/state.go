@@ -25,3 +25,6 @@ func (s *State) SetConfig(c *config.Config) {
 func (s *State) GetConfig() *config.Config {
 	return s.config
 }
+func (s *State) GetWriter() io.Writer {
+	return s.writer
+}

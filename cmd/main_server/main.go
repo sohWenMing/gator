@@ -9,10 +9,18 @@ import (
 	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/env"
 	"github.com/sohWenMing/gator/internal/state"
+	"github.com/sohWenMing/gator/internal/utils"
 )
 
 func main() {
-	readEnvVars, err := env.ReadEnv("../../.env")
+	envPath := os.Getenv("ENVPATH")
+	if envPath == "" {
+		fmt.Println("ENVPATH not found in environment, defaulting to .dev")
+	} else {
+		fmt.Println("Found envPath: ", envPath)
+	}
+
+	readEnvVars, err := env.ReadEnv(envPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,6 +54,10 @@ func main() {
 		err = config.WriteConfigToFile(*cfg, jsonPath)
 		if err != nil {
 			log.Fatal(err)
+		} else {
+			updatedUsername := args[0]
+			prompt := fmt.Sprintf("logged in user has been updated to %s", updatedUsername)
+			utils.WriteLine(state.GetWriter(), prompt)
 		}
 	}
 
