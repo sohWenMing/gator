@@ -2,6 +2,7 @@ package rssparser
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -9,34 +10,34 @@ import (
 
 func TestRssParser(t *testing.T) {
 	type test struct {
-		name     string
-		url      string
-		expected ParsedRssFeed
+		name                string
+		url                 string
+		expectedTitle       string
+		expectedDescription string
+		expectedLanguage    string
+		expectedLink        string
 	}
 
 	tests := []test{
 		{
 			"testing boot.dev rss",
 			"https://www.wagslane.dev/index.xml",
-			ParsedRssFeed{
-				"Lane's Blog",
-				"Recent content on Lane's Blog",
-				"en-us",
-				"https://wagslane.dev/",
-			},
+
+			"Lane's Blog",
+			"Recent content on Lane's Blog",
+			"en-us",
+			"https://wagslane.dev/",
 		},
 		{
 			"testing straits times",
 			"https://www.straitstimes.com/news/business/rss.xml",
-			ParsedRssFeed{
-				"The Straits Times Business News",
-				"The Straits Times" +
-					" - " + "Get exclusive stories, in-depth " +
-					"analyses and award-winning multimedia content about " +
-					"Singapore, Asia and the world.",
-				"en",
-				"https://www.straitstimes.com/",
-			},
+			"The Straits Times Business News",
+			"The Straits Times" +
+				" - " + "Get exclusive stories, in-depth " +
+				"analyses and award-winning multimedia content about " +
+				"Singapore, Asia and the world.",
+			"en",
+			"https://www.straitstimes.com/",
 		},
 	}
 	for _, test := range tests {
@@ -59,19 +60,22 @@ func TestRssParser(t *testing.T) {
 			if err != nil {
 				t.Errorf("didn't expect error, got %v", err)
 			}
-			if got.Title != test.expected.Title {
-				t.Errorf("\ngot: %s\nwant: %s", got.Title, test.expected.Title)
+			if got.Title != test.expectedTitle {
+				t.Errorf("\ngot: %s\nwant: %s", got.Title, test.expectedTitle)
 			}
-			if got.Description != test.expected.Description {
-				t.Errorf("\ngot: %s\nwant: %s", got.Description, test.expected.Description)
+			if got.Description != test.expectedDescription {
+				t.Errorf("\ngot: %s\nwant: %s", got.Description, test.expectedDescription)
 			}
-			if got.Language != test.expected.Language {
-				t.Errorf("\ngot: %s\nwant: %s", got.Language, test.expected.Language)
+			if got.Language != test.expectedLanguage {
+				t.Errorf("\ngot: %s\nwant: %s", got.Language, test.expectedLanguage)
 			}
-			if got.Link != test.expected.Link {
-				t.Errorf("\ngot: %s\nwant: %s", got.Link, test.expected.Link)
+			if got.Link != test.expectedLink {
+				t.Errorf("\ngot: %s\nwant: %s", got.Link, test.expectedLink)
 			}
-
+			fmt.Println("")
+			fmt.Println("Items: ", got.Items)
+			fmt.Println("")
+			fmt.Println("")
 		})
 	}
 }

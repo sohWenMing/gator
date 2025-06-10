@@ -2,6 +2,7 @@ package rssparser
 
 import (
 	"encoding/xml"
+	"html"
 )
 
 type RSSFeedData struct {
@@ -13,6 +14,7 @@ type ParsedRssFeed struct {
 	Description string
 	Language    string
 	Link        string
+	Items       []RSSItem
 }
 
 type Link struct {
@@ -23,10 +25,18 @@ type Link struct {
 }
 
 type ChannelData struct {
+	Title       string    `xml:"title"`
+	Description string    `xml:"description"`
+	Language    string    `xml:"language"`
+	Links       []Link    `xml:"link"`
+	Items       []RSSItem `xml:"item"`
+}
+
+type RSSItem struct {
 	Title       string `xml:"title"`
+	Link        string `xml:"link"`
 	Description string `xml:"description"`
-	Language    string `xml:"language"`
-	Links       []Link `xml:"link"`
+	PubDate     string `xml:"pubDate"`
 }
 
 func ParseRSSXML(data []byte) (rSSFeed ParsedRssFeed, err error) {
@@ -45,11 +55,24 @@ func ParseRSSXML(data []byte) (rSSFeed ParsedRssFeed, err error) {
 		}
 	}
 	rSSFeed = ParsedRssFeed{
-		Title:       rfd.Data.Title,
-		Description: rfd.Data.Description,
+		Title:       html.UnescapeString(rfd.Data.Title),
+		Description: html.UnescapeString(rfd.Data.Description),
 		Language:    rfd.Data.Language,
 		Link:        link,
+		Items:       make([]RSSItem, 0, len(rfd.Data.Items)),
+	}
+
+	for _, item := range rfd.Data.Items {
+		rSSFeed.Items = append(rSSFeed.Items, UnescapeStringsforRssItem(item))
 	}
 	return rSSFeed, nil
+}
 
+func UnescapeStringsforRssItem(item RSSItem) RSSItem {
+	return RSSItem{
+		Title:       html.UnescapeString(item.Title),
+		Link:        item.Link,
+		Description: html.UnescapeString(item.Description),
+		PubDate:     item.PubDate,
+	}
 }
