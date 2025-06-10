@@ -1,5 +1,5 @@
 run-dev:
-	@make run-pg-dev > /dev/null 2>&1 
+	@make run-pg-dev > /dev/null 2>&1
 	@cd /home/nindgabeet/workspace/github.com/sohWenMing/gator/cmd/main_server && \
 	ENVPATH="../../.env" go run . $(COMMAND) || true
 	@make stop-pg-dev > /dev/null 2>&1
