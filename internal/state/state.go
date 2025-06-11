@@ -10,10 +10,11 @@ import (
 )
 
 type State struct {
-	config       *config.Config
-	writer       io.Writer
-	queries      *database.Queries
-	stateContext StateContext
+	config         *config.Config
+	writer         io.Writer
+	queries        *database.Queries
+	stateContext   StateContext
+	aggregatorUrls []string
 }
 
 type StateContext struct {
@@ -27,6 +28,10 @@ func InitState(w io.Writer) *State {
 		writer: w,
 		stateContext: StateContext{
 			ctx, cancelFunc,
+		},
+		aggregatorUrls: []string{
+			"https://www.straitstimes.com/news/business/rss.xml",
+			"https://cointelegraph.com/rss/tag/bitcoin",
 		},
 	}
 }
@@ -50,4 +55,7 @@ func (s *State) GetQueries() *database.Queries {
 }
 func (s *State) GetStateContext() *StateContext {
 	return &s.stateContext
+}
+func (s *State) GetAggregatorUrls() []string {
+	return s.aggregatorUrls
 }

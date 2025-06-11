@@ -2,7 +2,9 @@ package rssparser
 
 import (
 	"encoding/xml"
+	"fmt"
 	"html"
+	"strings"
 )
 
 type RSSFeedData struct {
@@ -15,6 +17,48 @@ type ParsedRssFeed struct {
 	Language    string
 	Link        string
 	Items       []RSSItem
+}
+
+func (f *ParsedRssFeed) String() string {
+	var b strings.Builder
+	delimiter := fmt.Sprintln(fmt.Sprintf("+%s+", strings.Repeat("-", 45)))
+	itemDelimiter := fmt.Sprintln(fmt.Sprintf("+%s+", strings.Repeat("-", 30)))
+	titleString := fmt.Sprintln("Title: ", f.Title)
+	DescriptionString := fmt.Sprintln("Description", f.Description)
+	languageString := fmt.Sprintln("Language", f.Language)
+	linkString := fmt.Sprintln("Link", f.Link)
+	blankString := fmt.Sprintln("")
+
+	b.WriteString(delimiter)
+	b.WriteString(blankString)
+	b.WriteString(titleString)
+	b.WriteString(DescriptionString)
+	b.WriteString(languageString)
+	b.WriteString(linkString)
+
+	for _, item := range f.Items {
+		itemTitleString := fmt.Sprintln("News Item: ", item.Title)
+		itemLinkString := fmt.Sprintln("Link: ", item.Link)
+		itemDescriptionString := fmt.Sprintln("Description: ", item.Description)
+		itemDateString := fmt.Sprintln("Date: ", item.PubDate)
+		b.WriteString(itemDelimiter)
+		b.WriteString(itemTitleString)
+		b.WriteString(blankString)
+		b.WriteString(itemLinkString)
+		b.WriteString(blankString)
+		b.WriteString(strings.ReplaceAll(strings.ReplaceAll(itemDescriptionString, "<p>", ""), "</p>", ""))
+		b.WriteString(blankString)
+		b.WriteString(itemDateString)
+		b.WriteString(blankString)
+		b.WriteString(blankString)
+		b.WriteString(itemDelimiter)
+
+	}
+	b.WriteString(blankString)
+	b.WriteString(delimiter)
+
+	return b.String()
+
 }
 
 type Link struct {

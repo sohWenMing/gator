@@ -1,15 +1,20 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/sohWenMing/gator/internal/database"
+	rssparser "github.com/sohWenMing/gator/internal/rss_parser"
 	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
 )
@@ -52,6 +57,11 @@ var (
 		"lists all the users that are available in the system",
 		UsersCallBack,
 	}
+	AggCommand = Command{
+		"agg",
+		"gets the information from the rss aggreagator",
+		AggCallBack,
+	}
 )
 
 func (cm CommandMap) ParseCommand(osArgs []string) (parsedCommand Command, args []string, err error) {
@@ -83,7 +93,73 @@ func InitCommandMap() CommandMap {
 	returnedMap["register"] = RegisterCommand
 	returnedMap["reset"] = ResetCommand
 	returnedMap["users"] = UsersCommand
+	returnedMap["agg"] = AggCommand
 	return returnedMap
+}
+
+func AggCallBack(s *state.State, args []string) error {
+	fmt.Println("agg callback was called")
+	var wg sync.WaitGroup
+	urls := s.GetAggregatorUrls()
+
+	type ParsedRssFeedToError struct {
+		rssFeed rssparser.ParsedRssFeed
+		err     error
+	}
+
+	rssFeedToErrChan := make(chan ParsedRssFeedToError)
+	for _, url := range urls {
+		fmt.Println("checking url: ", url)
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+			ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelFunc()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			req.Header.Set("User-Agent", "gator")
+			if err != nil {
+				rssFeedToErrChan <- ParsedRssFeedToError{
+					rssparser.ParsedRssFeed{}, err,
+				}
+				return
+			}
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				rssFeedToErrChan <- ParsedRssFeedToError{
+					rssparser.ParsedRssFeed{}, err,
+				}
+				return
+			}
+			resBytes, err := io.ReadAll(res.Body)
+			if err != nil {
+				rssFeedToErrChan <- ParsedRssFeedToError{
+					rssparser.ParsedRssFeed{}, err,
+				}
+				return
+			}
+			parsedRSS, err := rssparser.ParseRSSXML(resBytes)
+			if err != nil {
+				rssFeedToErrChan <- ParsedRssFeedToError{
+					rssparser.ParsedRssFeed{}, err,
+				}
+				return
+			}
+			rssFeedToErrChan <- ParsedRssFeedToError{
+				parsedRSS, nil,
+			}
+			return
+		}(url)
+	}
+	go func() {
+		wg.Wait()
+		close(rssFeedToErrChan)
+	}()
+	for result := range rssFeedToErrChan {
+		if result.err == nil {
+			utils.WriteLine(s.GetWriter(), result.rssFeed.String())
+		}
+	}
+	return nil
 }
 
 func LoginCallBack(s *state.State, args []string) error {
