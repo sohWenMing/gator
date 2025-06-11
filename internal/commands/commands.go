@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sohWenMing/gator/internal/database"
+	"github.com/sohWenMing/gator/internal/helper"
 	rssparser "github.com/sohWenMing/gator/internal/rss_parser"
 	"github.com/sohWenMing/gator/internal/state"
 	"github.com/sohWenMing/gator/internal/utils"
@@ -167,7 +168,10 @@ func LoginCallBack(s *state.State, args []string) error {
 		return errors.New("number of args passed into login command should only be 1, being the user to login")
 	}
 	nameForLogin := args[0]
-	user, err := s.GetQueries().GetUser(s.GetStateContext().Context, nameForLogin)
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	user, err := s.GetQueries().GetUser(contextStruct.Context, nameForLogin)
+	defer contextStruct.CancelFunc()
+
 	if err != nil {
 		errMsg := err.Error()
 		if isNotFound := strings.Contains(errMsg, "no rows in result set"); isNotFound {
@@ -192,7 +196,9 @@ func ResetCallBack(s *state.State, args []string) error {
 	if len(args) != 0 {
 		return errors.New("reset cannot be called with arguments")
 	}
-	err := s.GetQueries().DeleteAllUsers(s.GetStateContext().Context)
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	err := s.GetQueries().DeleteAllUsers(contextStruct.Context)
+	defer contextStruct.CancelFunc()
 	if err != nil {
 		return err
 	}
@@ -208,7 +214,9 @@ func UsersCallBack(s *state.State, args []string) error {
 	if len(args) != 0 {
 		return errors.New("users cannot be called with arguments")
 	}
-	users, err := s.GetQueries().GetAllUsers(s.GetStateContext().Context)
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	users, err := s.GetQueries().GetAllUsers(contextStruct.Context)
+	defer contextStruct.CancelFunc()
 	if err != nil {
 		return err
 	}
@@ -230,12 +238,14 @@ func RegisterCallBack(s *state.State, args []string) error {
 		return errors.New("number of args passed into register command should only be 1, being the user to register")
 	}
 
-	user, err := s.GetQueries().CreateUser(s.GetStateContext().Context, database.CreateUserParams{
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	user, err := s.GetQueries().CreateUser(contextStruct.Context, database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Name:      args[0],
 	})
+	defer contextStruct.CancelFunc()
 	if err != nil {
 		errMsg := err.Error()
 		if isDup := strings.Contains(errMsg, "duplicate key value violates unique constraint"); isDup == true {

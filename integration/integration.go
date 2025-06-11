@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"github.com/sohWenMing/gator/internal/config"
 	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
+	"github.com/sohWenMing/gator/internal/helper"
 	"github.com/sohWenMing/gator/internal/state"
 )
 
@@ -40,7 +42,8 @@ func PingDB(s *state.State) error {
 
 	go func(proceedChan chan<- struct{}, exitChan chan<- error) {
 		for i := 0; i < 60; i++ {
-			_, err := s.GetQueries().Ping(s.GetStateContext().Context)
+			contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+			_, err := s.GetQueries().Ping(contextStruct.Context)
 			if err != nil {
 				time.Sleep(500 * time.Millisecond)
 				continue

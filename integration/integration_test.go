@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	"github.com/sohWenMing/gator/internal/commands"
 	"github.com/sohWenMing/gator/internal/database"
 	"github.com/sohWenMing/gator/internal/env"
+	"github.com/sohWenMing/gator/internal/helper"
 	"github.com/sohWenMing/gator/internal/state"
 )
 
@@ -63,7 +65,9 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	err = testState.GetQueries().DeleteAllUsers(testState.GetStateContext().Context)
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	defer contextStruct.CancelFunc()
+	err = testState.GetQueries().DeleteAllUsers(contextStruct.Context)
 	if err != nil {
 		fmt.Println("error on cleanup of DB: ", err)
 	}
@@ -108,8 +112,10 @@ func TestCreateUser(t *testing.T) {
 				UpdatedAt: time.Now(),
 				Name:      test.inputName,
 			}
+			contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+			defer contextStruct.CancelFunc()
 			user, err := testState.GetQueries().CreateUser(
-				testState.GetStateContext().Context, createUserParams,
+				contextStruct.Context, createUserParams,
 			)
 			switch test.isErrExpected {
 			case false:
@@ -128,7 +134,9 @@ func TestCreateUser(t *testing.T) {
 		})
 	}
 
-	err := testState.GetQueries().DeleteAllUsers(testState.GetStateContext().Context)
+	contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+	defer contextStruct.CancelFunc()
+	err := testState.GetQueries().DeleteAllUsers(contextStruct.Context)
 	if err != nil {
 		t.Errorf("clearing of all users failed")
 		return
@@ -144,9 +152,12 @@ func TestListAllUsers(t *testing.T) {
 			UpdatedAt: time.Now(),
 			Name:      username,
 		}
-		_, err := testState.GetQueries().CreateUser(testState.GetStateContext().Context, userToCreate)
+		contextStruct := helper.SpawnTimeOutContext(context.Background(), 10*time.Second)
+		_, err := testState.GetQueries().CreateUser(contextStruct.Context, userToCreate)
+		contextStruct.CancelFunc()
 		if err != nil {
 			t.Errorf("error on creating user: %v", err)
+			contextStruct.CancelFunc()
 			return
 		}
 	}
