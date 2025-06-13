@@ -157,7 +157,6 @@ func TestListAllUsers(t *testing.T) {
 		contextStruct.CancelFunc()
 		if err != nil {
 			t.Errorf("error on creating user: %v", err)
-			contextStruct.CancelFunc()
 			return
 		}
 	}

@@ -1,9 +1,12 @@
 #!/bin/bash
 TMPFILE=$(mktemp)
+TMPFILE2=$(mktemp)
+# the path to TMPFILE here is already created - so no matter what we need to eventually clear it 
 
 # first create a tmpfile to store the results from the psql command 
 connected=false
 trap 'rm -f "$TMPFILE"' EXIT
+trap 'rm -f "$TMPFILE2"' EXIT
 #ensure cleanup after operation
 
 
@@ -45,14 +48,14 @@ fi
 echo "Running migrations"
 cd "./sql/schema"
 CONNSTRING="postgres://postgres:postgres@localhost:5432/gator"
-goose postgres "$CONNSTRING" up 2>"$TMPFILE"
+goose postgres "$CONNSTRING" up 2>"$TMPFILE2"
 # attempt to run the migration
 
-if grep -q "no migrations to run" "$TMPFILE"; then 
+if grep -q "no migrations to run" "$TMPFILE2"; then 
     echo "All migrations are up to date"
-elif [ -s "$TMPFILE" ]; then
+elif [ -s "$TMPFILE2" ]; then
     echo "error occured when running migration"
-    cat "$TMPFILE"
+    cat "$TMPFILE2"
 else 
     echo "migrations ran successfully"
 fi
